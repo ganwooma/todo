@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>To-Do List</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #fbc2eb, #a6c1ee);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .todo-container {
+      background-color: white;
+      padding: 30px;
+      margin-top: 60px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      width: 450px;
+      animation: fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .input-group input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .input-group button {
+      padding: 10px;
+      background-color: #4a90e2;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .input-group button:hover {
+      background-color: #357ab8;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      display: flex;
+      flex-direction: column;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideUp 0.3s forwards;
+    }
+
+    @keyframes slideUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .task-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .task-text {
+      font-size: 16px;
+      margin-left: 8px;
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .task-text.completed {
+      text-decoration: line-through;
+      color: #aaa;
+    }
+
+    .dates {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .actions button {
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .actions button:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="todo-container">
+    <h1>To-Do List</h1>
+    <div class="input-group">
+      <input type="text" id="taskInput" placeholder="할 일 입력" />
+      <input type="date" id="dueDate" />
+      <button onclick="addTask()">추가</button>
+    </div>
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+    function saveTasks() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      tasks.forEach((task, index) => {
+        const li = document.createElement('li');
+
+        const header = document.createElement('div');
+        header.className = 'task-header';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.completed;
+        checkbox.onclick = () => {
+          task.completed = !task.completed;
+          saveTasks();
+          renderTasks();
+        };
+
+        const span = document.createElement('span');
+        span.className = 'task-text' + (task.completed ? ' completed' : '');
+        span.textContent = task.text;
+
+        header.appendChild(checkbox);
+        header.appendChild(span);
+        li.appendChild(header);
+
+        const dates = document.createElement('div');
+        dates.className = 'dates';
+        dates.innerHTML = `추가 날짜: ${formatDate(task.created)}<br>목표 날짜: ${formatDate(task.due)}`;
+        li.appendChild(dates);
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '수정';
+        editBtn.onclick = () => {
+          const newText = prompt('할 일을 수정하세요:', task.text);
+          if (newText) {
+            task.text = newText;
+            saveTasks();
+            renderTasks();
+          }
+        };
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '삭제';
+        delBtn.onclick = () => {
+          tasks.splice(index, 1);
+          saveTasks();
+          renderTasks();
+        };
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        li.appendChild(actions);
+
+        list.appendChild(li);
+      });
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const dueInput = document.getElementById('dueDate');
+      const text = input.value.trim();
+      const due = dueInput.value;
+
+      if (text && due) {
+        tasks.push({
+          text,
+          due,
+          created: new Date().toISOString(),
+          completed: false
+        });
+        input.value = '';
+        dueInput.value = '';
+        saveTasks();
+        renderTasks();
+      } else {
+        alert('할 일과 목표 날짜를 입력해주세요.');
+      }
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>
